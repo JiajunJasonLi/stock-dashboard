@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import watchlist
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 origins = [
     "http://localhost:5173"
