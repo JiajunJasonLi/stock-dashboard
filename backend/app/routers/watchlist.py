@@ -6,7 +6,7 @@ from app.database import get_db
 from app.schemas import WatchlistItem
 
 router = APIRouter(
-    prefix="/api/watchlist",
+    prefix="/watchlist",
     tags=["watchlist"]
 )
 

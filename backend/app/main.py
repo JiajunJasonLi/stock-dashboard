@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import watchlist
+from app.routers import watchlist, tickers
 
 app = FastAPI(root_path="/api")
 
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(watchlist.router)
+app.include_router(tickers.router)
 
 @app.get("/")
 def read_root():
