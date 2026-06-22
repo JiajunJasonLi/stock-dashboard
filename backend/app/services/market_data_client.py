@@ -21,7 +21,7 @@ class MarketDataClient:
         else:
             url = f"{self.base_url}/v1/stocks/candles/D/{symbol}/?from={start_date}"
 
-        response = requests.get(url, headers = headers, timeout = 10)
+        response = requests.get(url, headers = self.headers, timeout = 10)
 
         if response.status_code not in [200, 203]:
             raise RuntimeError("MarketData API request failed")

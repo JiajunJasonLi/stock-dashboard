@@ -29,7 +29,7 @@ class Ticker(TimestampMixin, Base):
     currency: Mapped[str | None] = mapped_column(Text)
 
     daily_prices: Mapped[list["DailyStockPrice"]] = relationship(back_populates="ticker")
-    watchlist_item: Mapped["WatchlistItem | None"] = relationship(back_populates="ticker", uselist=False)
+    # watchlist_item: Mapped["WatchlistItem | None"] = relationship(back_populates="ticker", uselist=False)
 
 
 class DailyStockPrice(TimestampMixin, Base):
@@ -51,25 +51,6 @@ class DailyStockPrice(TimestampMixin, Base):
     volume: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
     ticker: Mapped[Ticker] = relationship(back_populates="daily_prices")
-
-
-class WatchlistItem(Base):
-    __tablename__ = "watchlist_items"
-    __table_args__ = (
-        UniqueConstraint("ticker_id", name="uq_watchlist_items_ticker_id"),
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    # TODO: Confirm whether deleting a ticker should remove it from the single watchlist.
-    ticker_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("tickers.id"), nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-
-    ticker: Mapped[Ticker] = relationship(back_populates="watchlist_item")
-
 
 class ApiFetchLog(Base):
     __tablename__ = "api_fetch_logs"

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import watchlist, tickers
+from app.routers import tickers
 
 app = FastAPI(root_path="/api")
 
@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(watchlist.router)
+# app.include_router(watchlist.router)
 app.include_router(tickers.router)
 
 @app.get("/")

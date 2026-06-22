@@ -8,7 +8,7 @@ class AlphaVantageClient:
         self.base_url = settings.ALPHAVANTAGE_BASE_URL
         self.token = settings.ALPHAVANTAGE_TOKEN
 
-    def get_company_name(symbol: str) -> str:
+    def get_company_name(self, symbol: str) -> str:
         url = f"{self.base_url}/query?function=OVERVIEW&symbol={symbol}&apikey={self.token}"
     
         r = requests.get(url)
