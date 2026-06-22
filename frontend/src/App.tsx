@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import './App.css';
 import Header from './components/Header';
 import PriceChart from './components/PriceChart';
-import { getTickerPrices, getTickers } from './services/api';
-import type { TickerItem, TickerPrice } from './types/market';
+import AddTickerPage from './pages/AddTickerPage';
+import { ApiError, fetchDailyPrices, getTickerPrices, getTickers } from './services/api';
+import type { FetchDailyResponse, TickerItem, TickerPrice } from './types/market';
 
 type LoadState = 'loading' | 'success' | 'error';
+type DetailTab = 'chart' | 'data';
+type FetchStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 function formatCurrency(value: number | undefined) {
   if (value === undefined) {
@@ -56,8 +59,8 @@ function TickerListPage() {
           <p className="eyebrow">Ticker table</p>
           <h1>Market dashboard</h1>
         </div>
-        <a className="button" href="/stocks/NVDA">
-          Open sample detail
+        <a className="button" href="/tickers/new">
+          Add symbol
         </a>
       </div>
 
@@ -106,6 +109,27 @@ function StockDetailPage({ symbol }: { symbol: string }) {
   const [prices, setPrices] = useState<TickerPrice[]>([]);
   const [hoveredPrice, setHoveredPrice] = useState<TickerPrice | null>(null);
   const [status, setStatus] = useState<LoadState>('loading');
+  const [activeTab, setActiveTab] = useState<DetailTab>('chart');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [fetchStatus, setFetchStatus] = useState<FetchStatus>('idle');
+  const [fetchMessage, setFetchMessage] = useState('');
+  const [lastFetch, setLastFetch] = useState<FetchDailyResponse | null>(null);
+
+  const refreshPrices = () => {
+    setStatus('loading');
+
+    return getTickerPrices(symbol)
+      .then((items) => {
+        setPrices(items);
+        setHoveredPrice(null);
+        setStatus('success');
+      })
+      .catch((error) => {
+        console.error('Price API error:', error);
+        setStatus('error');
+      });
+  };
 
   useEffect(() => {
     getTickerPrices(symbol)
@@ -119,6 +143,38 @@ function StockDetailPage({ symbol }: { symbol: string }) {
         setStatus('error');
       });
   }, [symbol]);
+
+  const handleFetchDailySubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!startDate) {
+      setFetchStatus('error');
+      setFetchMessage('Choose a start date.');
+      return;
+    }
+
+    setFetchStatus('submitting');
+    setFetchMessage('');
+
+    fetchDailyPrices(symbol, startDate, endDate)
+      .then((result) => {
+        setLastFetch(result);
+        setFetchStatus('success');
+        setFetchMessage(`Imported ${result.rows_imported} daily rows for ${result.symbol}.`);
+        return refreshPrices();
+      })
+      .catch((error) => {
+        setFetchStatus('error');
+        setLastFetch(null);
+
+        if (error instanceof ApiError && error.status === 422) {
+          setFetchMessage('Check the date range. Start date must be on or before end date, and dates cannot be in the future.');
+          return;
+        }
+
+        setFetchMessage(error instanceof Error ? error.message : 'Unable to load daily data.');
+      });
+  };
 
   const displayedPrice = hoveredPrice ?? prices.at(-1);
   const displayedIndex = displayedPrice
@@ -176,7 +232,28 @@ function StockDetailPage({ symbol }: { symbol: string }) {
         </div>
       </div>
 
-      <div className="panel chart-panel">
+      <div className="tab-list" role="tablist" aria-label={`${symbol} detail sections`}>
+        <button
+          className={activeTab === 'chart' ? 'tab-button tab-button--active' : 'tab-button'}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'chart'}
+          onClick={() => setActiveTab('chart')}
+        >
+          Chart
+        </button>
+        <button
+          className={activeTab === 'data' ? 'tab-button tab-button--active' : 'tab-button'}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'data'}
+          onClick={() => setActiveTab('data')}
+        >
+          Data
+        </button>
+      </div>
+
+      {activeTab === 'chart' && <div className="panel chart-panel" role="tabpanel">
         <div className="panel-heading">
           <h2>Historical OHLCV</h2>
           <span>{hoveredPrice ? `Selected ${hoveredPrice.price_date}` : dateRange}</span>
@@ -188,7 +265,79 @@ function StockDetailPage({ symbol }: { symbol: string }) {
           <p className="state-message">No price history found for {symbol}.</p>
         )}
         {prices.length > 0 && <PriceChart prices={prices} onHoverPrice={setHoveredPrice} />}
-      </div>
+      </div>}
+
+      {activeTab === 'data' && <div className="detail-grid" role="tabpanel">
+        <div className="panel">
+          <div className="panel-heading">
+            <h2>Load daily data</h2>
+            <span>POST /api/tickers/{symbol}/fetch-daily</span>
+          </div>
+
+          <form className="ticker-form" onSubmit={handleFetchDailySubmit}>
+            <div className="date-fields">
+              <div className="field-group">
+                <label htmlFor="fetch-start-date">Start date</label>
+                <input
+                  id="fetch-start-date"
+                  name="start_date"
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className="field-group">
+                <label htmlFor="fetch-end-date">End date</label>
+                <input
+                  id="fetch-end-date"
+                  name="end_date"
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
+              </div>
+            </div>
+
+            <button className="button" type="submit" disabled={fetchStatus === 'submitting'}>
+              {fetchStatus === 'submitting' ? 'Loading data...' : 'Load daily data'}
+            </button>
+
+            {fetchStatus === 'error' && <p className="form-message form-message--error">{fetchMessage}</p>}
+            {fetchStatus === 'success' && (
+              <div className="form-message form-message--success">
+                <strong>{lastFetch?.symbol}</strong>
+                <span>{fetchMessage}</span>
+              </div>
+            )}
+          </form>
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <h2>Metadata</h2>
+            <span>{status === 'success' ? `${prices.length} price rows` : 'Price history'}</span>
+          </div>
+
+          <dl className="metadata-list">
+            <div>
+              <dt>Symbol</dt>
+              <dd>{symbol}</dd>
+            </div>
+            <div>
+              <dt>Loaded range</dt>
+              <dd>{dateRange}</dd>
+            </div>
+            <div>
+              <dt>Latest close</dt>
+              <dd>{formatCurrency(prices.at(-1)?.close)}</dd>
+            </div>
+            <div>
+              <dt>Latest volume</dt>
+              <dd>{formatVolume(prices.at(-1)?.volume)}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>}
     </section>
   );
 }
@@ -221,11 +370,16 @@ function App() {
 
   const stockMatch = currentPath.match(/^\/stocks\/([^/]+)$/);
   const symbol = stockMatch?.[1]?.toUpperCase();
+  const isAddTickerPage = currentPath === '/tickers/new';
 
   return (
     <>
       <Header currentPath={currentPath} />
-      <main>{symbol ? <StockDetailPage key={symbol} symbol={symbol} /> : <TickerListPage />}</main>
+      <main>
+        {isAddTickerPage && <AddTickerPage />}
+        {!isAddTickerPage && symbol && <StockDetailPage key={symbol} symbol={symbol} />}
+        {!isAddTickerPage && !symbol && <TickerListPage />}
+      </main>
     </>
   );
 }

@@ -6,10 +6,23 @@ type NavbarProps = {
 
 const items = [
   { href: '/', label: 'Tickers' },
+  { href: '/tickers/new', label: 'Add Symbol' },
   { href: '/stocks/NVDA', label: 'Stock Detail' },
 ];
 
 function Navbar({ currentPath }: NavbarProps) {
+  const isActive = (href: string) => {
+    if (href === '/') {
+      return currentPath === '/';
+    }
+
+    if (href.startsWith('/stocks/')) {
+      return currentPath.startsWith('/stocks/');
+    }
+
+    return currentPath.startsWith(href);
+  };
+
   return (
     <nav className="navbar" aria-label="Primary">
       {items.map((item) => (
@@ -17,11 +30,7 @@ function Navbar({ currentPath }: NavbarProps) {
           key={item.href}
           href={item.href}
           label={item.label}
-          isActive={
-            item.href === '/'
-              ? currentPath === '/'
-              : currentPath.startsWith('/stocks/')
-          }
+          isActive={isActive(item.href)}
         />
       ))}
     </nav>
