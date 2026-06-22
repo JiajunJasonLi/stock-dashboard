@@ -20,7 +20,7 @@ jobs:
           pytest || true
       
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with: 
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
