@@ -37,7 +37,7 @@ jobs:
             --comment "Deploy app from GitHub Actions" \
             --parameters 'commands=[
               "cd /home/ubuntu/stock-dashboard",
-              "git pull origin main",
+              "git fetch origin main",
               "docker compose -f docker-compose.yml up -d --build",
               "docker image prune -f"
             ]' \
