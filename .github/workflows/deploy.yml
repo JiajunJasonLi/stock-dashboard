@@ -36,6 +36,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy app from GitHub Actions" \
             --parameters 'commands=[
+              "whoami",
               "cd /home/ubuntu/stock-dashboard",
               "git config --global --get-all safe.directory",
               "git rev-parse HEAD",
