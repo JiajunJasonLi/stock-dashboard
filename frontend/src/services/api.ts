@@ -1,7 +1,7 @@
 import type { FetchDailyResponse, TickerCreateResponse, TickerItem, TickerPrice } from '../types/market';
 
 // TODO: Move this to a Vite env variable once local and container API URLs diverge.
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 export class ApiError extends Error {
   status: number;
